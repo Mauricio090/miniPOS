@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart'; 
-// Importamos el administrador del estado (el interruptor global)
+
+// 1. Importamos los administradores de estado
 import 'features/control_modos/presentation/providers/modo_provider.dart';
-// Importamos la interfaz base (donde se dibuja la barra superior con el Switch)
+import 'features/venta/presentation/providers/venta_provider.dart'; // <--- ¡Asegúrate de ajustar esta ruta según dónde guardaste tu archivo!
+
+// 2. Importamos la interfaz base
 import 'features/control_modos/presentation/screens/main_screen.dart';
 
 void main() {
   runApp(
-    // 1. Envolvemos toda la aplicación con el proveedor de estado
+    // Envolvemos toda la aplicación con los proveedores globales
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => ModoProvider()),
+        ChangeNotifierProvider(create: (_) => VentaProvider()), // <--- ¡AQUÍ ESTABA EL FALTANTE!
       ],
       child: const MyApp(),
     ),
@@ -25,7 +29,6 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Mini POS Móvil',
       debugShowCheckedModeBanner: false,
-      // 2. Definimos que la primera pantalla visible sea la MainScreen
       home: const MainScreen(), 
     );
   }
