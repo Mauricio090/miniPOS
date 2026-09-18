@@ -35,7 +35,7 @@ class ListaCarritoWidget extends StatelessWidget {
             margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             child: ListTile(
               title: Text(item.nombre, style: const TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: Text('\$${item.precioVenta.toStringAsFixed(2)} x ${item.cantidad} = \$${item.totalPorProducto.toStringAsFixed(2)}'),
+              subtitle: Text('\$${item.precioVenta.toStringAsFixed(2)} x ${item.cantidad} = \$${item.subtotal.toStringAsFixed(2)}'),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [

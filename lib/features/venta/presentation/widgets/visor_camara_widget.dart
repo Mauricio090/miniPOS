@@ -7,33 +7,48 @@ class VisorCamaraWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 180,
-      color: Colors.black87,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          const Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.qr_code_scanner, size: 60, color: Colors.white54),
-              SizedBox(height: 8),
-              Text('Apunta al código de barras...', style: TextStyle(color: Colors.white54)),
-            ],
-          ),
-          Positioned(
-            bottom: 10,
-            child: ElevatedButton.icon(
-              onPressed: () {
-                // Simulación de escaneo rápido de Coca Cola
-                onProductoEscaneado('12345', 'Coca Cola 600ml', 15.00, 5, false);
-              },
-              icon: const Icon(Icons.flash_on),
-              label: const Text('Simular Escaneo (Coca Cola)'),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.amber, foregroundColor: Colors.black),
+    return SizedBox(
+      width: double.infinity,
+      child: Container(
+        color: Colors.black87,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            const Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.qr_code_scanner, size: 60, color: Colors.white54),
+                SizedBox(height: 8),
+                Text('Apunta al código de barras...', style: TextStyle(color: Colors.white54)),
+              ],
             ),
-          ),
-        ],
+            Positioned(
+              bottom: 10,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      onProductoEscaneado('12345', 'Coca Cola 600ml', 15.00, 5, false);
+                    },
+                    icon: const Icon(Icons.flash_on, size: 16),
+                    label: const Text('Simular Con Stock', style: TextStyle(fontSize: 11)),
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.amber, foregroundColor: Colors.black),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      onProductoEscaneado('99991', 'Papas Sabritas 45g', 18.50, 0, false);
+                    },
+                    icon: const Icon(Icons.block, size: 16),
+                    label: const Text('Simular Sin Stock', style: TextStyle(fontSize: 11)),
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade400, foregroundColor: Colors.white),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

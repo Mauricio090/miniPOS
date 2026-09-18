@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS clientes (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     nombre          TEXT NOT NULL,
     telefono        TEXT
+    saldo REAL NOT NULL DEFAULT 0.0
 );
 
 -- 5. VENTAS
@@ -52,8 +53,7 @@ CREATE TABLE IF NOT EXISTS ventas (
     cliente_id      INTEGER,
     fecha           TEXT NOT NULL,
     total           REAL NOT NULL,
-    metodo_pago     TEXT NOT NULL CHECK (metodo_pago IN ('efectivo', 'tarjeta', 'credito')),
-    estado_pago     TEXT NOT NULL CHECK (estado_pago IN ('pagado', 'pendiente', 'parcial')),
+    metodo_pago     INTEGER NOT NULL DEFAULT 0, -- 0: Efectivo, 1: Transferencia, 2: Mixto, 3: Crédito/Fiado
 
     FOREIGN KEY (turno_id) REFERENCES turnos(id),
     FOREIGN KEY (cliente_id) REFERENCES clientes(id)
@@ -61,7 +61,6 @@ CREATE TABLE IF NOT EXISTS ventas (
 
 CREATE INDEX IF NOT EXISTS idx_ventas_turno ON ventas(turno_id);
 CREATE INDEX IF NOT EXISTS idx_ventas_cliente ON ventas(cliente_id);
-CREATE INDEX IF NOT EXISTS idx_ventas_estado_pago ON ventas(estado_pago);
 
 -- 6. VENTA_ITEMS
 CREATE TABLE IF NOT EXISTS venta_items (
@@ -81,14 +80,14 @@ CREATE INDEX IF NOT EXISTS idx_venta_items_producto ON venta_items(producto_id);
 -- 7. PAGOS_CREDITO
 CREATE TABLE IF NOT EXISTS pagos_credito (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    venta_id        INTEGER NOT NULL,
-    turno_id        INTEGER NOT NULL,
+    cliente_id      INTEGER NOT NULL,
+    turno_id        INTEGER NOT NULL, -- El turno actual donde el efectivo físico entra a la gaveta
     monto_pagado    REAL NOT NULL,
-    fecha_pago      TEXT NOT NULL,
+    fecha           TEXT NOT NULL,
 
-    FOREIGN KEY (venta_id) REFERENCES ventas(id),
+    FOREIGN KEY (cliente_id) REFERENCES clientes(id),
     FOREIGN KEY (turno_id) REFERENCES turnos(id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_pagos_credito_venta ON pagos_credito(venta_id);
+CREATE INDEX IF NOT EXISTS idx_pagos_credito_cliente ON pagos_credito(cliente_id);
 CREATE INDEX IF NOT EXISTS idx_pagos_credito_turno ON pagos_credito(turno_id);

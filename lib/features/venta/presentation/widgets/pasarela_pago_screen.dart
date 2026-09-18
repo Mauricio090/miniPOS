@@ -10,51 +10,54 @@ class PasarelaPagoScreen extends StatefulWidget {
 }
 
 class _PasarelaPagoScreenState extends State<PasarelaPagoScreen> {
-  // 'efectivo', 'qr' o 'combinado'
-  String _metodoSeleccionado = 'efectivo';
+  // 💳 Ahora soportamos los 4 métodos: 'Efectivo', 'QR', 'Mixto', 'Crédito'
+  String _metodoSeleccionado = 'Efectivo';
 
-  // Datos simulados del cliente de fiado
+  // Datos simulados del cliente de fiado / crédito
   final String _clienteNombre = "Juan Pérez (Cliente de Confianza)";
   final double _creditoLimite = 500.00;
   final double _saldoDeudorActual = 150.00;
 
   final TextEditingController _efectivoController = TextEditingController();
   final TextEditingController _qrController = TextEditingController();
-  
-  bool _esVentaAFiado = false;
 
   @override
   void initState() {
     super.initState();
-    _restablecerMontos('efectivo');
+    _restablecerMontos('Efectivo');
   }
 
-  /// Restablece los números dependiendo del botón seleccionado
+  /// Restablece los números de los campos según el método elegido
   void _restablecerMontos(String metodo) {
-    _metodoSeleccionado = metodo;
-    if (metodo == 'efectivo') {
-      _efectivoController.text = widget.totalAVender.toStringAsFixed(2);
-      _qrController.text = "0.00";
-    } else if (metodo == 'qr') {
-      _efectivoController.text = "0.00";
-      _qrController.text = widget.totalAVender.toStringAsFixed(2);
-    } else {
-      // Si es combinado, sugerimos la mitad de inicio
-      double mitad = widget.totalAVender / 2;
-      _efectivoController.text = mitad.toStringAsFixed(2);
-      _qrController.text = mitad.toStringAsFixed(2);
-    }
+    setState(() {
+      _metodoSeleccionado = metodo;
+
+      if (metodo == 'Efectivo') {
+        _efectivoController.text = widget.totalAVender.toStringAsFixed(2);
+        _qrController.text = "0.00";
+      } else if (metodo == 'QR') {
+        _efectivoController.text = "0.00";
+        _qrController.text = widget.totalAVender.toStringAsFixed(2);
+      } else if (metodo == 'Mixto') {
+        // Si es mixto, sugerimos la mitad de inicio para cada uno
+        double mitad = widget.totalAVender / 2;
+        _efectivoController.text = mitad.toStringAsFixed(2);
+        _qrController.text = mitad.toStringAsFixed(2);
+      } else if (metodo == 'Crédito') {
+        // Si es crédito puro, el pago en caja es 0, todo va a fiado
+        _efectivoController.text = "0.00";
+        _qrController.text = "0.00";
+      }
+    });
   }
 
-  /// 🧠 MATEMÁTICA INTELIGENTE: Si cambias uno, se calcula el OTRO automáticamente
-   void _calcularFaltanteDesdeEfectivo(String valor) {
+  /// 🧠 MATEMÁTICA INTELIGENTE: Si cambias efectivo, se calcula el QR automáticamente (para Mixto)
+  void _calcularFaltanteDesdeEfectivo(String valor) {
     double efectivo = double.tryParse(valor) ?? 0.0;
     
-    // REGLA DE NEGOCIO: Si el efectivo se pasa del total, lo topamos al límite
     if (efectivo > widget.totalAVender) {
       efectivo = widget.totalAVender;
       _efectivoController.text = widget.totalAVender.toStringAsFixed(2);
-      // Opcional: Esto mueve el cursor del teclado al final del texto para que no se trabe
       _efectivoController.selection = TextSelection.fromPosition(
         TextPosition(offset: _efectivoController.text.length)
       );
@@ -70,11 +73,9 @@ class _PasarelaPagoScreenState extends State<PasarelaPagoScreen> {
   void _calcularFaltanteDesdeQR(String valor) {
     double qr = double.tryParse(valor) ?? 0.0;
     
-    // REGLA DE NEGOCIO: Si el QR se pasa del total, lo topamos al límite
     if (qr > widget.totalAVender) {
       qr = widget.totalAVender;
       _qrController.text = widget.totalAVender.toStringAsFixed(2);
-      // Opcional: Esto mueve el cursor del teclado al final del texto para que no se trabe
       _qrController.selection = TextSelection.fromPosition(
         TextPosition(offset: _qrController.text.length)
       );
@@ -87,21 +88,24 @@ class _PasarelaPagoScreenState extends State<PasarelaPagoScreen> {
     });
   }
 
-
   @override
   void dispose() {
     _efectivoController.dispose();
     _qrController.dispose();
     super.dispose();
   }
+
   @override
   Widget build(BuildContext context) {
     double efectivo = double.tryParse(_efectivoController.text) ?? 0.0;
     double qr = double.tryParse(_qrController.text) ?? 0.0;
     double totalPagadoActualmente = efectivo + qr;
     
-    // Cálculo automático del saldo restante que se irá a la cuenta fiada
-    double montoAFiar = widget.totalAVender - totalPagadoActualmente;
+    // Si elige Crédito puro, el monto a fiar es el total. Si es Mixto, es lo que falte por cubrir.
+    double montoAFiar = (_metodoSeleccionado == 'Crédito') 
+        ? widget.totalAVender 
+        : (widget.totalAVender - totalPagadoActualmente);
+        
     if (montoAFiar < 0) montoAFiar = 0;
 
     double creditoDisponible = _creditoLimite - _saldoDeudorActual;
@@ -135,7 +139,7 @@ class _PasarelaPagoScreenState extends State<PasarelaPagoScreen> {
             ),
             const SizedBox(height: 20),
 
-            // SELECCIÓN DE MÉTODO DE PAGO
+            // SELECCIÓN DE LOS 4 MÉTODOS DE PAGO
             const Text('Selecciona el Método de Pago:', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
             const SizedBox(height: 10),
             Row(
@@ -143,35 +147,44 @@ class _PasarelaPagoScreenState extends State<PasarelaPagoScreen> {
                 Expanded(
                   child: ChoiceChip(
                     label: const Text('💵 Efectivo'),
-                    selected: _metodoSeleccionado == 'efectivo',
+                    selected: _metodoSeleccionado == 'Efectivo',
                     selectedColor: Colors.green.shade100,
-                    onSelected: (_) => setState(() => _restablecerMontos('efectivo')),
+                    onSelected: (_) => _restablecerMontos('Efectivo'),
                   ),
                 ),
-                const SizedBox(width: 5),
+                const SizedBox(width: 4),
                 Expanded(
                   child: ChoiceChip(
-                    label: const Text('📲 QR / Transf.'),
-                    selected: _metodoSeleccionado == 'qr',
+                    label: const Text('📲 QR'),
+                    selected: _metodoSeleccionado == 'QR',
                     selectedColor: Colors.green.shade100,
-                    onSelected: (_) => setState(() => _restablecerMontos('qr')),
+                    onSelected: (_) => _restablecerMontos('QR'),
                   ),
                 ),
-                const SizedBox(width: 5),
+                const SizedBox(width: 4),
                 Expanded(
                   child: ChoiceChip(
-                    label: const Text('🔀 Combinado'),
-                    selected: _metodoSeleccionado == 'combinado',
+                    label: const Text('🔀 Mixto'),
+                    selected: _metodoSeleccionado == 'Mixto',
                     selectedColor: Colors.green.shade100,
-                    onSelected: (_) => setState(() => _restablecerMontos('combinado')),
+                    onSelected: (_) => _restablecerMontos('Mixto'),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: ChoiceChip(
+                    label: const Text('📋 Crédito'),
+                    selected: _metodoSeleccionado == 'Crédito',
+                    selectedColor: Colors.green.shade100,
+                    onSelected: (_) => _restablecerMontos('Crédito'),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 24),
 
-            // CASILLAS DE ENTRADA (Solo aparecen y se editan si eliges 'Combinado' o si activas 'Fiado')
-            if (_metodoSeleccionado == 'combinado' || _esVentaAFiado) ...[
+            // CASILLAS DE ENTRADA (Solo si se selecciona 'Mixto')
+            if (_metodoSeleccionado == 'Mixto') ...[
               const Text('Desglose del Pago Mixto:', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey)),
               const SizedBox(height: 12),
               TextField(
@@ -182,7 +195,6 @@ class _PasarelaPagoScreenState extends State<PasarelaPagoScreen> {
                   prefixText: '\$ ',
                   border: OutlineInputBorder(),
                 ),
-                // Lógica interactiva: al teclear aquí, el campo de abajo se recalcula solo
                 onChanged: _calcularFaltanteDesdeEfectivo,
               ),
               const SizedBox(height: 15),
@@ -190,53 +202,30 @@ class _PasarelaPagoScreenState extends State<PasarelaPagoScreen> {
                 controller: _qrController,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 decoration: const InputDecoration(
-                  labelText: 'Monto por Transferencia / QR',
+                  labelText: 'Monto por QR / Transferencia',
                   prefixText: '\$ ',
                   border: OutlineInputBorder(),
                 ),
-                // Lógica interactiva: al teclear aquí, el campo de arriba se recalcula solo
                 onChanged: _calcularFaltanteDesdeQR,
               ),
               const SizedBox(height: 15),
-            ] else ...[
-              // Si es pago simple, solo mostramos un texto limpio para no saturar la pantalla
+            ] else if (_metodoSeleccionado == 'Efectivo' || _metodoSeleccionado == 'QR') ...[
               Center(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   child: Text(
-                    _metodoSeleccionado == 'efectivo' 
+                    _metodoSeleccionado == 'Efectivo' 
                         ? 'Se liquidará el total (\$${widget.totalAVender.toStringAsFixed(2)}) en Efectivo.'
-                        : 'Se liquidará el total (\$${widget.totalAVender.toStringAsFixed(2)}) mediante Código QR.',
+                        : 'Se liquidará el total (\$${widget.totalAVender.toStringAsFixed(2)}) mediante QR.',
                     style: const TextStyle(fontSize: 15, fontStyle: FontStyle.italic, color: Colors.blueGrey),
                   ),
                 ),
               ),
             ],
 
-            // SECCIÓN DE FIADOS
-            const Divider(height: 40),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('¿Fiar saldo restante a crédito?', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-                Switch(
-                  value: _esVentaAFiado,
-                  activeColor: Colors.green,
-                  onChanged: (val) {
-                    setState(() {
-                      _esVentaAFiado = val;
-                      // Si activa fiado, abrimos el desglose mixto para que el cajero manipule los abonos
-                      if (_esVentaAFiado && _metodoSeleccionado != 'combinado') {
-                        _metodoSeleccionado = 'combinado';
-                      }
-                    });
-                  },
-                ),
-              ],
-            ),
-
-            if (_esVentaAFiado) ...[
-              const SizedBox(height: 10),
+            // SECCIÓN DE CRÉDITO (Aparece automáticamente si se selecciona 'Crédito' o 'Mixto')
+            if (_metodoSeleccionado == 'Crédito' || _metodoSeleccionado == 'Mixto') ...[
+              const Divider(height: 40),
               Card(
                 color: Colors.orange.shade50,
                 child: Padding(
@@ -264,7 +253,7 @@ class _PasarelaPagoScreenState extends State<PasarelaPagoScreen> {
             ],
             const SizedBox(height: 30),
 
-            // BOTÓN FINAL CON REGLAS DE NEGOCIO Y FILTROS DE SEGURIDAD
+            // BOTÓN FINAL CON REGLAS DE NEGOCIO Y VALIDACIONES
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green,
@@ -272,34 +261,31 @@ class _PasarelaPagoScreenState extends State<PasarelaPagoScreen> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
               onPressed: () {
-                double pagadoTotal = (double.tryParse(_efectivoController.text) ?? 0.0) + 
-                                    (double.tryParse(_qrController.text) ?? 0.0);
-
-                // Validación 1: Si no es fiado y el dinero ingresado no cubre el total
-                if (!_esVentaAFiado && pagadoTotal < widget.totalAVender) {
+                // Validación 1: Si es pago simple o mixto y el dinero ingresado no cubre el total (y no es crédito puro)
+                if (_metodoSeleccionado != 'Crédito' && totalPagadoActualmente < widget.totalAVender && _metodoSeleccionado != 'Mixto') {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('🛑 Saldo incompleto. Ajusta los montos mixtos o activa el modo Fiado.'),
+                      content: Text('🛑 Saldo incompleto. Revisa los montos ingresados.'),
                       backgroundColor: Colors.red,
                     ),
                   );
                   return;
                 }
 
-                // Validación 2: Requerimiento de tope de crédito excedido
-                if (_esVentaAFiado && montoAFiar > creditoDisponible) {
+                // Validación 2: Si involucra crédito (Crédito puro o Mixto con saldo a fiar) y excede el límite
+                if ((_metodoSeleccionado == 'Crédito' || _metodoSeleccionado == 'Mixto') && montoAFiar > creditoDisponible) {
                   showDialog(
                     context: context,
                     builder: (context) => AlertDialog(
                       title: const Text('🛑 Crédito Insuficiente'),
-                      content: Text('La deuda restante (\$${montoAFiar.toStringAsFixed(2)}) supera el límite disponible de este cliente (\$${creditoDisponible.toStringAsFixed(2)}). Compra bloqueada.'),
+                      content: Text('La deuda a fiar (\$${montoAFiar.toStringAsFixed(2)}) supera el límite disponible de este cliente (\$${creditoDisponible.toStringAsFixed(2)}). Compra bloqueada.'),
                       actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Entendido'))],
                     ),
                   );
                   return;
                 }
 
-                // Cierra la pantalla devolviendo éxito al carrito
+                // Todo correcto: Cierra la pantalla devolviendo éxito al carrito
                 Navigator.pop(context, true); 
               },
               child: const Text('Confirmar y Registrar Pago 💾', style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold)),
